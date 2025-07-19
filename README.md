@@ -1,73 +1,112 @@
-# Deploying AWS 3-Tier Webapp with Terraform, Docker, and GitHub Actions (CI/CD) Pipeline
+# 🚀 Deploying a Scalable AWS 3-Tier Web App Using Terraform, Ansible, Docker, and GitHub Actions
 
-## Project Structure
-![Infrastructure](./assests/AWS-Three-Tier-Architecture.jpg)
+## 🧠 Project Overview
+This project automates the provisioning and deployment of a containerized Flask application (Monty Hall Game) on AWS using Terraform, Docker, Ansible, and GitHub Actions. The architecture is built for scalability, modularity, and production-readiness — following a true DevOps lifecycle approach.
 
-## Project Description
-- Dockerize a Flask app (Monty Hall Game) and push it to AWS Elastic Container Registry (ECR).
-- Deploy AWS Infrastructure using Terraform modules.
-- Provision EC2 Instances and pull latest Docker image and run it.
-- Finally: You will have a container running flask app on 2 EC2 Instances behind Application Load Balancer.
+## 📁 Project Architecture
 
+![Architecture](./assets/AWS-Three-Tier-Architecture.jpg)
 
-## Technologies Used in Detail: 
-1. **Terraform (IaC)**: To deploy AWS Infrastructure resources using Terraform modules.
-2. **AWS Resources**:
-	- VPC (2 Public Subnets, 4 Private Subnets, Elastic IP, Nat Gateway, Internet Gateway).
-	- 3 EC2 Instances (two for hosting the app and bastion host to ssh), and Application Load Balancer.
-	- RDS, and Elasticache.
-	- S3 and Dynamodb: to store state file and lock it.
-	- Security Groups.
-3. **Docker**: To dockerize my Flask application using a Dockerfile.
-4. **GitHub Actions (CI/CD) Pipeline**: To do these Jobs on every git push command, also manually triggered:
-	- Automate the Infrastructure building and destroying process.
-	- Provision the EC2 Instances (Install and configure Docker).
-	- Build, push docker image to AWS ECR, then pull and run docker container in the ec2 instance.
+### Breakdown:
+- **VPC**: Custom VPC with private and public subnets across 2 AZs  
+- **EC2**: 1 Bastion Host (public), 2 App Instances (private)  
+- **ALB**: Load balances across app servers  
+- **RDS** (optional): PostgreSQL instance in private subnet  
+- **ECR**: Stores Docker image  
+- **S3 & DynamoDB**: Remote Terraform backend with state locking  
+- **IAM**: Scoped roles for Terraform, EC2, ECR access  
+- **Ansible**: Used for EC2 post-provision configuration and Docker deployment
 
+---
 
-## How to Try This Project:
-- Clone This repo.
-- Push it to GitHub or Fork the repo in the first place.
-- Add GitHub Secrets from the settings of the repo.
+## Technologies Used
+
+| Tool               | Purpose                                                                 |
+|--------------------|-------------------------------------------------------------------------|
+| **Terraform**      | Infrastructure as Code to provision all AWS resources                  |
+| **Ansible**        | Configure EC2 instances, install Docker, pull image, run container     |
+| **Docker**         | Containerize the Flask app                                              |
+| **GitHub Actions** | CI/CD automation for Terraform apply/destroy, and app deployment       |
+| **Amazon ECR**     | Store and pull Docker images securely                                  |
+| **Application Load Balancer** | Evenly distribute traffic across app instances              |
+
+---
+
+##  CI/CD Pipeline Workflow
+
+The GitHub Actions pipeline performs the following jobs:
+
+- **Terraform Init & Plan** — Validate infrastructure setup  
+- **Terraform Apply/Destroy** — Build or destroy AWS resources  
+- **Provisioning** — Use Ansible to configure EC2 and deploy Docker app  
+- **Image Build & Push** — Build Flask app into Docker image and push to ECR  
+- **Deploy to EC2** — Pull image and run container on EC2
+
+---
+
+##  Secrets Configuration (GitHub)
+
+You’ll need to add the following secrets to your GitHub repository:
+
 ```yaml
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }} # YOUR AWS User KeyID.
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} # YOUR AWS User Credentials.
-  EC2_PRIVATE_SSH_KEY: ${{ secrets.AWS_EC2_SSH_PRIVATE_KEY }} # Used to ssh into EC2.
-  EC2_PUBLIC_SSH_KEY: ${{ secrets.AWS_SSH_PUBLIC_KEY }} # Used to upload public key to aws.
-```
-> To add **AWS Credentials** see the content of `~/.aws/config`
-> If you didn't see anything Install AWS CLI then do this command `aws configure` and provide your info here because you will use it in the future.
+AWS_ACCESS_KEY_ID: <your-access-key>
+AWS_SECRET_ACCESS_KEY: <your-secret-key>
+EC2_PRIVATE_SSH_KEY: <your-private-key>
+EC2_PUBLIC_SSH_KEY: <your-public-key>
 
-> To add **public and private SSH Keys** use these commands
-```bash
-ssh-keygen # name = ssh_key_aws ,then enter enter 
-chmod 400 ssh_key_aws
-cat ssh_key_aws # paste the content into GitHub Secrets EC2_PRIVATE_SSH_KEY
-cat ssh_key_aws.pub # paste the content into GitHub Secrets EC2_PUBLIC_SSH_KEY
-```
-- Now you are ready to trigger the pipeline: Go to Actions tab and click on the name of the workflow `Build AWS Infrastructure and Deploy Dockerized Flask-App on it.` then click on run work flow.
-- To see the website go to your aws account and click on your loadbalancer and open its public DNS.
-- **IMPORTANT**: Destroy the resources after you finish because it will get pricy very fast.
-### How to Destroy AWS Resources:
-- Run the GitHub Actions Workflow again (manually) and choose destroy when prompted to run the workflow.
-- If that fails for any reason, go to your account and destroy every resource from there manually to not get a high bill.
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/aws_key
+chmod 400 ~/.ssh/aws_key
 
+Paste the keys into GitHub repo settings > Secrets and variables > Actions.
 
+ How to Use
 
+    Fork or clone the repo
 
-## To-Do List
-- [ ] Provisoin EC2 Instances using Ansible.
-- [ ] Send email to me using lambda once the terraform state file change.
+    Set your secrets in GitHub Actions
 
-## Resources and Note
-1. [GitHub Action Tutorial by Nana.](https://www.youtube.com/watch?v=R8_veQiYBjI)
-2. [GitHub Actions Docs.](https://docs.github.com/en/actions)
-3. [AWS three-tier Architecture by Tech with Lucy.](https://www.youtube.com/watch?v=5RVT3BN9Iws)
-4. [Project Idea.](https://www.youtube.com/watch?v=xIyDhaIfC1I)
+    Trigger the workflow from the Actions tab
 
->**Note**: I've build this project from many resources and couldn't memorize every source I got info from.
-I hope you benefit from this project.
-If you like this project, I appreciate you starring this repo.<br>
-Finally, feel free to fork the content and contact me on my [LinkedIn account](https://www.linkedin.com/in/abdassalam-ahmad/) if you have any questions about this project.<br>
+    After deployment, visit your ALB DNS to access the app
 
+    Tear down when done to avoid AWS billing
 
+ Contributions & Improvements by Me
+
+    Migrated provisioning from raw Bash to Ansible
+
+    Improved container handling: ensures port 80 is freed before deploy
+
+    Added idempotency with checks on running containers before redeploy
+
+    Simplified Docker image pull and run logic with ECR login in pipeline
+
+    Automated full CI/CD lifecycle via GitHub Actions with clear trigger stages
+
+To-Do / Enhancements
+
+Ansible integration for EC2 configuration
+
+Add monitoring with CloudWatch or Prometheus
+
+Add DNS integration using Route53
+
+    Integrate Slack notifications via Lambda
+
+Resources
+
+    AWS Terraform Modules
+
+    Ansible Docs
+
+    GitHub Actions
+
+    ECR Authentication
+
+Author
+
+Anyankpele Peter
+DevOps Engineer with 5+ years in AWS, automation, and scalable deployments.
+LinkedIn Profile - https://www.linkedin.com/in/peter-anyankpele
+
+If this project helped or inspired you, feel free to star it. Fork it, expand it, and build something awesome!
